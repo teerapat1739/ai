@@ -8,7 +8,10 @@ x = tf.add(a, b)
 # print(tf.constant(2))
 # define session
 with tf.Session() as session:
+    writer = tf.summary.FileWriter('./graphs', session.graph)
     print(session.run(x))
+
+writer.close()
 
 # session = tf.Session()
 # print(session.run(x))
