@@ -1,9 +1,31 @@
 import numpy as np
-import tensorflow as tf
+
+'''
+Step 0: Write a hypothesis function (in matrix form)
+'''
+
+
+def hypothesis(x, theta):
+    """
+    hypothesis(x, theta)
+
+        Calculate a value for the predicted y using
+        sigmoid function.
+
+        Parameters
+        ----------
+        x : 1-D matrix or vector
+            The vector x.
+        theta : 1-D matrix or vector
+            The vector theta.
+    """
+    z = np.dot(x, theta)
+    sigmoid = # write your code to calculate the sigmoid
+    return sigmoid
 
 
 '''
-Step 0: Prepare the dataset (X, y)
+Step 1: Prepare the dataset (X, y)
 '''
 X1 = np.array([[5.85811186e+00, 1.22514944e-01], [6.00000443e+00, 1.35309858e+00],
                [5.92284784e+00, 2.73055315e+00], [1.52096299e+00, 6.21018604e+00],
@@ -107,47 +129,91 @@ X2 = np.array([[3.43323051, -4.68184123], [2.59748185, -0.61500731],
                [1.72832737, 1.88550113], [2.83989839, -3.62635215],
                [4.17304198, -7.15506579], [0.47159292, 0.28458576]])
 
-Input = np.concatenate([X1, X2], 0)
-Output = np.concatenate([np.matrix(np.zeros([100, 1])), np.matrix(np.ones([100, 1]))])
+X = np.concatenate([X1, X2], 0)
+y = np.concatenate([np.matrix(np.zeros([100, 1])), np.matrix(np.ones([100, 1]))])
 
 '''
-Step 1: Construct TF graph
+Step 2: Set up the basic variables e.g. 
+- the number of training dataset
+- the learning rate
+- initialized value of theta
 '''
 
-X = tf.placeholder(tf.float32, [None, 2], name='X')
-Y = tf.placeholder(tf.float32, [None, 1], name='Y')
+number_of_samples = X.shape[0]  # You may also rename this variable to 'm' to keep it consistent with our slide.
+learning_rate = 0.001  # This is alpha in our equation
+theta = np.array([[0], [0], [0]])  # Notice its dimension ! it's 3 x 1.
+converged = False
 
-thetas = tf.Variable(tf.zeros([2, 1]), name='Thetas')
-theta0 = tf.Variable(tf.zeros([1]), name='theta0')
+# Unlike Problem6 of Lab2, Let's compute (theta_1)(x_1) + (theta_2)(x_2) + ... + (theta_n)(x_n)
+# by using matrix multiplication i.e. np.dot(x, theta) !
+# To do this, let's augment our matrix X by one in the first column.
+# Then, multiplying [x_1 x_2 x_3] with [theta_1 theta_2 theta_3]^T yields x_1 theta_1 + x_2 theta_2 + x_3 theta_3
+X_Augmented_By_One = np.concatenate([np.ones([number_of_samples, 1]), X], 1)
+
+best_log_likelihood = -1e+6
+epoch = 0
+accuracy = 0
 
 '''
-Step 2: Define the hypothesis function
+Step 3: Start training. 
+Now, we will implement stochastic gradient ascent (not, descent !) to find the optimal theta. 
+Since gradient ascent is used, we have to maximize instead and our function is now the log likelihood !
 '''
 
-z = tf.matmul(X, thetas)
-hypothesis_function = tf.div(1.0, 1.0 + tf.exp(-(z + theta0)))
+print('Running...')
 
-'''
-Step 3: Define the cost function
-'''
+# In the following, let's try to implement a specific version of stochastic as follows:
+# (see https://en.wikipedia.org/wiki/Stochastic_gradient_descent for its reference).
+# Noted that the above reference is about gradient descent; not gradient ascent.
+# But, they basically follow the same idea i.e. train thetas w.r.t. a single data.
+# --------------------------------------------------------------------------------------
+#
+# Repeat until an approximate minimum is obtained:
+#   Randomly shuffle examples in the training set.
+#   For i = 1, 2, 3, ..., number_of_samples do:
+#       theta = theta + (learning_rate)(gradient of (theta)(x) w.r.t. log likelihood l)
+#
+while not converged:
+    print('Start training for epoch {}'.format(epoch + 1))
 
-cost_function = tf.reduce_mean(-(Y * tf.log(hypothesis_function)) - (1 - Y) * tf.log(1 - hypothesis_function))
-'''
-Step 4: Use gradient descent with learning rate of 0.03 to minimize the cost function
-'''
+    # One way to shuffle is to use permutation !
+    permutation = np.random.permutation(number_of_samples)
 
-optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.03).minimize(cost_function)
+    for i in range(number_of_samples):
+        individual = permutation[i]
 
-with tf.Session() as session:
-    '''
-    Step 5: Initialize the necessary variables
-    '''
-    session.run(tf.global_variables_initializer())
+        x = X_Augmented_By_One[individual, :]  # Here, x.shape = (3, ) i.e. a tuple.
+        x.shape = [1, 3]  # So, we have to force its dimension !
 
-    for i in range(30000):
-        # use batch gradient decent
-        _, cost = session.run([optimizer, cost_function], feed_dict={X: Input, Y: Output})
+        actual_y = y[individual, 0]  # This is a float
+        predicted_y = hypothesis(x, theta)[0]  # This is a tuple !
 
-        print("Epoch: {0}, cost = {1}".format(i + 1, cost))
+        theta = theta + learning_rate * (actual_y - predicted_y) * x.T
 
-    print("theta0: {0}, theta1: {1}, theta2: {2}".format(session.run(theta0[0]), session.run(thetas[0][0]), session.run(thetas[1][0])))
+    print('Finish training for epoch {}'.format(epoch + 1))
+    print('theta0: {0}, theta1: {1}, theta2: {2}'.format(theta[0], theta[1], theta[2]))
+
+    predicted_y = hypothesis(X_Augmented_By_One, theta)
+    predicted_y_crisp = predicted_y >= 0.5  # We predict y = 1 if h(theta^T x) >= 0.5
+
+    # We have not learnt about computing accuracy yet.
+    # We will learn it later on Week 8 in a topic called 'Learning Theory'
+    # Here, I will introduce it shortly as follows:
+    # Accuracy = the summation of correct predictions divided by the number of dataset
+    accuracy = sum(predicted_y_crisp == y) / number_of_samples
+    log_likelihood = # write your code here to compute the log likelihood
+
+    print('End epoch {0} with accuracy = {1}, log likelihood = {2}'.format(
+        epoch + 1, accuracy, log_likelihood))
+
+    if log_likelihood < best_log_likelihood + 1e-6:
+        # Now, we want to say 'converge' if the current log likelihood becomes lower than the best one (plus a certain error). What code should we write here ?
+
+    if log_likelihood > best_log_likelihood:
+        # Now, we want to update the best log likelihood if the current one is the the best one. What code should we write here ?
+
+    epoch = epoch + 1
+
+print('Optimization finishes\n')
+print("The best log likelihood is {0} and the optimal theta is \n{1}".format(
+    best_log_likelihood, theta))
