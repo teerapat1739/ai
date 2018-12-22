@@ -18,6 +18,7 @@ Step 2: Create placeholders for training X and label Y
 X = tf.placeholder(tf.float32, name='X')
 Y = tf.placeholder(tf.float32, name='Y')
 
+
 '''
 Step 3: Create theta0 and theta1, initialized them to 0
 '''
@@ -34,8 +35,8 @@ hypothesis_function = theta0 + theta1 * X
 '''
 Step 5: Use the mean squared error as the loss function
 '''
-loss_function = (1 / (2 * n_samples)) * tf.reduce_sum(tf.pow(Y - hypothesis_function, 2))
 
+loss_function = (1 / (2 * n_samples)) * tf.reduce_sum(tf.pow(Y - hypothesis_function, 2))
 
 '''
 Step 6: Using gradient descent with learning rate of 0.03 to minimize the loss
@@ -49,13 +50,14 @@ with tf.Session() as session:
     '''
     session.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter('./graphs/linear_regression', session.graph)
+
     '''
     Step 8: Train the models for 1000 epoches
     '''
     for i in range(1000):
-        session.run(optimizer, feed_dict={X:area, Y: price})
-        cost = session.run(loss_function, feed_dict={X: area, Y: price })
-        
+        session.run(optimizer,feed_dict={X:area, Y: price})
+        cost = session.run(loss_function, feed_dict={X: area, Y:price})
+
         print("Epoch: {0}, cost = {1}, theta0 = {2}, theta1 = {3}".format(i + 1, cost, session.run(theta0), session.run(theta1)))
 
     '''
@@ -78,3 +80,5 @@ with tf.Session() as session:
 
 # Close the writer when you finished using it
 writer.close()
+
+# รันโดย tensorboard --logdir="./graphs/linear_regression"
