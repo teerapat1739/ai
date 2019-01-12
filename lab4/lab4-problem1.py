@@ -4,8 +4,8 @@ import tensorflow as tf
 
 
 def one_hot_vector(i):
-    one_hot = # Construct a 1D matrix whose cells are filled by zero
-    one_hot[i] = # Reassign the position i of one_hot to one
+    one_hot = np.zeros(10, 'uint8')
+    one_hot[i] = 1
     return one_hot
 
 
@@ -40,8 +40,8 @@ theta0 = tf.Variable(tf.zeros([10]), name='theta0')
 '''
 Step 2: Define the hypothesis function i.e. Softmax function (see Slide# )
 '''
-
-hypothesis_function = # Put your code here 
+z = tf.matmul(X, thetas)
+hypothesis_function = tf.nn.softmax(z + theta0)
 
 '''
 Step 3: Define the cost function i.e. the cross-entropy loss
@@ -63,16 +63,23 @@ cost_function = tf.reduce_mean(-tf.reduce_sum(Y * tf.log(hypothesis_function), r
 Step 4: Use gradient descent with learning rate of 0.9 to minimize the cost function
 '''
 
-optimizer = # Put your code here 
+optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.9).minimize(cost_function)
 
 '''
 Step 5: Train the model 
 '''
 
 with tf.Session() as session:
-    # Put your code here to: 
-    # 1) train the model
-    # 2) compute the cost for each training step
-    # 3) report the number of correct prediction and its accuracy
-    # Noted that there may be more than one line of code for this step !
+    session.run(tf.global_variables_initializer())
 
+    for i in range(1000):
+        _, cost = session.run([optimizer, cost_function], feed_dict={X: feature_matrix, Y: target_vector_one_hot})
+
+        print("Epoch = {0}, Cost = {1}\n".format(i + 1, cost))
+
+    print("Optimization Finished!")
+    # Test model
+    correct_prediction = tf.equal(tf.argmax(hypothesis_function, 1), tf.argmax(Y, 1))
+    # Calculate accuracy
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    print("Accuracy:", accuracy.eval({X: feature_matrix, Y: target_vector_one_hot}))
